@@ -157,14 +157,38 @@ def display_hangman(tries):
     ]
     return stages[tries]
 
+# def main():
+#     player_name = input("Enter your name: ")
+#     word = get_word()
+#     play(word, player_name)
+#     while input("Play Again? (Y/N) ").upper() == "Y":
+#         word = get_word()
+#         play(word, player_name)
+        
+def delete_player_scores(player_name):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    session.query(HighScore).filter_by(player_name=player_name).delete()
+    session.commit()
+
 def main():
     player_name = input("Enter your name: ")
     word = get_word()
     play(word, player_name)
-    while input("Play Again? (Y/N) ").upper() == "Y":
-        word = get_word()
-        play(word, player_name)
+    while True:
+        choice = input("Play Again? (P) / Delete Scores? (D) / Quit? (Q): ").upper()
         
+        if choice == "P":
+            word = get_word()
+            play(word, player_name)
+        elif choice == "D":
+            # Allow the user to delete their own scores
+            delete_player_scores(player_name)
+            print("Your scores have been deleted.")
+        elif choice == "Q":
+            break
+        else:
+            print("Invalid choice. Please choose 'P', 'D', or 'Q'.")
 
 if __name__ == "__main__":
     main()
