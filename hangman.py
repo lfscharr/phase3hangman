@@ -1,13 +1,30 @@
 import random
 from words import word_list
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import datetime
 
+# Create a SQLite database using SQLAlchemy
+engine = create_engine("sqlite:///hangman_scores.db")
+Base = declarative_base()
+
+# Define a HighScore table to store high scores
+class HighScore(Base):
+    __tablename__ = "high_scores"
+    id = Column(Integer, primary_key=True)
+    player_name = Column(String, nullable=False)
+    score = Column(Integer, nullable=False)
+    date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+Base.metadata.create_all(engine)
 
 def get_word():
     word = random.choice(word_list)
     return word.upper()
 
-
-def play(word):
+def play(word, player_name):
+    total = 0
     word_completion = "_" * len(word)
     guessed = False
     guessed_letters = []
@@ -28,6 +45,7 @@ def play(word):
                 guessed_letters.append(guess)
             else:
                 print("Good job,", guess, "is in the word!")
+                total = 1
                 guessed_letters.append(guess)
                 word_as_list = list(word_completion)
                 indices = [i for i, letter in enumerate(word) if letter == guess]
@@ -53,12 +71,20 @@ def play(word):
         print("\n")
     if guessed:
         print("Congrats, you guessed the word! You win!")
+
+        # Store the high score in the database using SQLAlchemy
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        high_score = HighScore(player_name=player_name, score=total)
+        session.add(high_score)
+        session.commit()
+
+        print("High score saved.")
     else:
         print("Sorry, you ran out of tries. The word was " + word + ". Maybe next time!")
 
-
 def display_hangman(tries):
-    stages = [  # final state: head, torso, both arms, and both legs
+    stages = [  
                 """
                    --------
                    |      |
@@ -68,7 +94,7 @@ def display_hangman(tries):
                    |     / \\
                    -
                 """,
-                # head, torso, both arms, and one leg
+                
                 """
                    --------
                    |      |
@@ -78,7 +104,7 @@ def display_hangman(tries):
                    |     / 
                    -
                 """,
-                # head, torso, and both arms
+                
                 """
                    --------
                    |      |
@@ -88,7 +114,7 @@ def display_hangman(tries):
                    |      
                    -
                 """,
-                # head, torso, and one arm
+                
                 """
                    --------
                    |      |
@@ -98,7 +124,7 @@ def display_hangman(tries):
                    |     
                    -
                 """,
-                # head and torso
+                
                 """
                    --------
                    |      |
@@ -108,7 +134,7 @@ def display_hangman(tries):
                    |     
                    -
                 """,
-                # head
+                
                 """
                    --------
                    |      |
@@ -118,7 +144,7 @@ def display_hangman(tries):
                    |     
                    -
                 """,
-                # initial empty state
+                
                 """
                    --------
                    |      |
@@ -131,14 +157,14 @@ def display_hangman(tries):
     ]
     return stages[tries]
 
-
 def main():
+    player_name = input("Enter your name: ")
     word = get_word()
-    play(word)
+    play(word, player_name)
     while input("Play Again? (Y/N) ").upper() == "Y":
         word = get_word()
-        play(word)
-
+        play(word, player_name)
+        
 
 if __name__ == "__main__":
     main()
